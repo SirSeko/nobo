@@ -144,6 +144,14 @@ void NoboClimate::loop() {
   elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - this->begin_time_state_);
   if(elapsedTime.count()>((this->update_interval_*1000))) {
     this->begin_time_state_ = std::chrono::steady_clock::now();
+        // --- FIX STARTS HERE ---
+    // If the climate mode is HEAT, re-send the target temperature.
+    // This ensures the heater is always aware of the setpoint.
+    if (this->mode == climate::CLIMATE_MODE_HEAT) {
+      ESP_LOGD(TAG, "Re-sending target temperature: %.1f °C", this->target_temperature);
+      this->set_target_temperature(static_cast<uint8_t>(this->target_temperature));
+    }
+    // --- FIX ENDS HERE ---
     this->publish_state();
     if (this->power_sensor_ != nullptr) {
       this->power_sensor_->publish_state(this->heater_power_watt_);
