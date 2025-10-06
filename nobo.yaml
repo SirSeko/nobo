@@ -86,7 +86,9 @@ light:
           name: StatusIndicator
           update_interval: 1s
           lambda: |-
-            float current_power = id(noboheater).get_heater_power_percentage();
+            float HEATER_NOMINAL_POWER = 2000.0 # Change this to suit your heater max. 2000 W
+            float current_power_watts = id(nobopower).state;
+            float current_power = (current_power_watts / HEATER_NOMINAL_POWER) * 100.0;
             auto call = id(ledlight).make_call();
             call.set_transition_length(1);
             float cold_color[3]={0.22,0.77,1.0};
