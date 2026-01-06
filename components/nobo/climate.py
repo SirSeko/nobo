@@ -23,9 +23,8 @@ NoboClimate = nobo_ns.class_("NoboClimate", climate.Climate, cg.Component, i2c.I
 NoboClimateTargetTempConfig = nobo_ns.struct("NoboClimateTargetTempConfig")
 
 CONFIG_SCHEMA = cv.All(
-    climate.CLIMATE_SCHEMA.extend(
+    climate.climate_schema(NoboClimate).extend(
         {
-            cv.GenerateID(): cv.declare_id(NoboClimate),
             cv.Required(CONF_NOMINAL_POWER): cv.All(
                 power, cv.Range(min=200.0, max=2500.0)
             ),
