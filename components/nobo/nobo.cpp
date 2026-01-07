@@ -20,6 +20,7 @@ void NoboClimate::setup() {
   }
   this->heater_power_percentage_=0;
   this->heater_power_watt_=0;
+  this->update_count_=0;
 
   auto restore = this->restore_state_();
   if (restore.has_value()) {
@@ -73,23 +74,27 @@ bool NoboClimate::set_target_temperature(uint8_t temperature) {
 
     i2c::ErrorCode error = this->write_register(0x01, tx_data, 6, false);
     if(error) {
-        ESP_LOGW(TAG, "Failed to set target temperature, I2C command error!");
+        ESP_LOGW(TAG, "Failed to set target temperature, I2C command error1!");
         return false;
     }
     error = this->read(rx_data, 1);
     if(error) {
-        ESP_LOGW(TAG, "Failed to set target temperature, I2C command error!");
+        ESP_LOGW(TAG, "Failed to set target temperature, I2C command error2!");
         return false;
     }
 
-    return rx_data[0]==TEMPSETOK;
+    if(rx_data[0]!=TEMPSETOK) {
+      ESP_LOGW(TAG, "Failed to set heater temperature, error 5!");
+      return false;
+    }
+    return true;
 }
 
 bool NoboClimate::get_heater_state() {
     uint8_t rx_data[1];
     i2c::ErrorCode error = this->read_register(0x05, rx_data, 1, false);
     if(error) {
-        ESP_LOGW(TAG, "Failed to get heater state, I2C command error!");
+        ESP_LOGW(TAG, "Failed to get heater state, I2C command error3!");
         return false;
     }
 
@@ -100,7 +105,7 @@ float NoboClimate::get_heater_temperature() {
     uint8_t rx_data[6];
     i2c::ErrorCode error = this->read_register(0x03, rx_data, 6, false);
     if(error) {
-        ESP_LOGW(TAG, "Failed to get heater temperature, I2C command error!");
+        ESP_LOGW(TAG, "Failed to get heater temperature, I2C command error4!");
         return 0.0;
     }
 
@@ -112,6 +117,11 @@ float NoboClimate::get_heater_temperature() {
     millicelsius.t8[1] = rx_data[1];
 
     return static_cast<float>(millicelsius.t16)/1000.0;
+}
+
+float NoboClimate::get_heater_power_percentage()
+{
+  return heater_power_percentage_;
 }
 
 void NoboClimate::update_power() {
@@ -139,6 +149,12 @@ void NoboClimate::loop() {
     this->begin_time_sensors_ = std::chrono::steady_clock::now();
     this->update_power();
     this->update_temp();
+    if(update_count_==PWM_INTERVAL) {
+          this->set_target_temperature(static_cast<uint8_t>(this->target_temperature));
+          update_count_=0;
+    } else {
+      update_count_++;
+    }
   }
 
   elapsedTime = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - this->begin_time_state_);
